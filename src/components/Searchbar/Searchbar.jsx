@@ -4,6 +4,10 @@ import { toast } from 'react-toastify';
 import { Header, Form, Button, ButtonLabel, Input } from './Searchbar.styled';
 
 class Searchbar extends Component {
+  static propTypes = {
+    onSubmit: PropTypes.func.isRequired,
+  };
+
   state = {
     name: '',
     pictures: [],
@@ -12,12 +16,15 @@ class Searchbar extends Component {
   handleSubmit = e => {
     e.preventDefault();
 
-    if (this.state.name.trim() === '') {
-      toast.error('Please, enter the word');
-      return;
+    const { name } = this.state;
+    const normilizedName = name.trim();
+
+    this.props.onSubmit(normilizedName);
+    this.setState({ name: normilizedName });
+
+    if (!normilizedName) {
+      toast.warning('Please, enter your search query.');
     }
-    this.props.onSubmitForm(this.state.name);
-    this.setState({ name: '' });
   };
 
   handleInputChange = e => {
