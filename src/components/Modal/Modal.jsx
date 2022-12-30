@@ -4,39 +4,45 @@ import PropTypes from 'prop-types';
 import { Overlay, StyledModal } from './Modal.styled';
 
 const ModalRoot = document.querySelector('#modal-root');
+
 class Modal extends Component {
+  static propTypes = {
+    url: PropTypes.string.isRequired,
+    onClose: PropTypes.func.isRequired,
+  };
+
   componentDidMount() {
-    window.addEventListener('keydown', this.handleKeydown);
+    window.addEventListener('keydown', this.handleEscKeydown);
   }
 
   componentWillUnmount() {
-    window.removeEventListener('keydown', this.handleKeydown);
+    window.removeEventListener('keydown', this.handleEscKeydown);
   }
 
-  handleKeydown = e => {
-    if (e.code === 'Escape') {
+  handleOverlayClick = ({ target, currentTarget }) => {
+    if (target === currentTarget) {
       this.props.onClose();
     }
   };
 
-  handleOverlayClick = e => {
-    if (e.currentTarget === e.target) {
+  handleEscKeydown = ({ code }) => {
+    if (code === 'Escape') {
       this.props.onClose();
     }
   };
 
   render() {
+    const { url } = this.props;
+
     return createPortal(
       <Overlay onClick={this.handleOverlayClick}>
-        <StyledModal>{this.props.children}</StyledModal>
+        <StyledModal>
+          <img src={url} alt="" />
+        </StyledModal>
       </Overlay>,
       ModalRoot
     );
   }
 }
-
-Modal.propTypes = {
-  handleOverlayClick: PropTypes.func,
-};
 
 export default Modal;

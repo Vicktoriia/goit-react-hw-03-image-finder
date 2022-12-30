@@ -9,79 +9,76 @@ import Loader from './Loader/Loader';
 import Modal from './Modal/Modal';
 class App extends Component {
   state = {
-    status: 'idle',
     name: '',
-    images: [],
-    activeModal: null,
+    loading: false,
     page: 1,
-    totalPages: 1,
+    perPage: 12,
+    images: [],
+    error: null,
+    activeModal: null,
+    totalImages: 0,
   };
 
   componentDidUpdate(prevProps, prevState) {
-    const { name: prevName, page: prevPage } = prevState;
     const { name, page } = this.state;
 
-    if (!name) return;
-
-    if (page !== prevPage || name !== prevName) {
-      this.getImages();
+    if (prevState.name === name && prevState.page === page) {
+      return;
     }
+    this.getImages();
   }
 
-  async getImages() {
-    const { name, page, images } = this.state;
-
-    this.setStatus('pending');
-
-    try {
-      const { hits, totalHits } = await FetchImages(name, page);
-
-      if (!hits.length) {
-        toast.info(
-          'Sorry, there are no images matching your search query. Please try again.'
-        );
-        return;
-      }
-
-      this.setState({
-        images: [...images, ...hits],
+  handleFormSubmit = name => {
+    if (this.state.name === name) {
+      toast.error('You enter the same name!!! Enter new one!!!', {
+        theme: 'colored',
       });
-
-      if (page === 1) {
-        toast.info(`Hooray! We found ${totalHits} images.`);
-        this.calculateTotalPages(totalHits);
-      }
-    } catch (error) {
-      toast.error(error.message);
-    } finally {
-      this.setStatus('resolved');
     }
-  }
-
-  calculateTotalPages(total) {
-    this.setState({ totalPages: Math.ceil(total / 12) });
-  }
-
-  setNewName = name => {
     this.setState({
       name,
       page: 1,
       images: [],
-      totalPages: 1,
-      status: 'idle',
     });
   };
 
-  setActiveModalUrl = url => this.setState({ activeModal: url });
+  async getImages() {
+    const { name, page } = this.state;
+    this.setState({ loading: true });
 
-  setNextPage = () => this.setState(({ page }) => ({ page: page + 1 }));
+    try {
+      const { data } = await FetchImages(name, page);
+      this.setState({
+        images: [...this.state.images, ...data.hits],
+        totalImages: data.totalHits,
+      });
 
-  setStatus = status => this.setState({ status });
+      if (data.totalHits === 0) {
+        toast.error(
+          `Sorry, there are no images with name "${this.state.name}. Please try again."`,
+          {
+            theme: 'colored',
+          }
+        );
+      }
+    } catch (error) {
+      this.setState({ error });
+    } finally {
+      this.setState({ loading: false });
+    }
+  }
+
+  loadMoreImages = () => {
+    this.setState(prevState => ({
+      page: prevState.page + 1,
+    }));
+  };
+
+  togleModal = url => this.setState({ activeModal: url });
 
   render() {
-    const { status, images, activeModal, page, totalPages } = this.state;
+    const { images, loading, activeModal, totalImages, page } = this.state;
 
-    const loadMoreBtn = page < totalPages && status === 'resolved';
+    const restOfImages = totalImages - page * 12;
 
     return (
       <div
@@ -96,24 +93,21 @@ class App extends Component {
           marginTop: 20,
         }}
       >
-        <Searchbar onSearch={this.setNewName} />
+        <Searchbar onSubmitForm={this.handleFormSubmit} />
 
         {images.length > 0 && (
-          <ImageGallery images={images} onClick={this.setActiveModalUrl} />
+          <ImageGallery images={images} onClick={this.togleModal} />
         )}
 
-        {activeModal && (
-          <Modal
-            url={activeModal}
-            onClose={() => this.setActiveModalUrl(null)}
-          />
+        {loading && <Loader loading={loading} />}
+
+        {images.length > 0 && restOfImages > 0 && (
+          <Button title="Load more" onClick={this.loadMoreImages} />
         )}
 
-        {loadMoreBtn && <Button onClick={this.setNextPage}>Load More</Button>}
+        {activeModal && <Modal url={activeModal} onClose={this.togleModal} />}
 
-        {status === 'pending' && <Loader />}
-
-        <ToastContainer theme="colored" autoClose={3000} />
+        <ToastContainer autoClose={3000} />
       </div>
     );
   }
