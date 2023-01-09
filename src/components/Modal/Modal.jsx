@@ -1,16 +1,10 @@
 import { Component } from 'react';
 import { createPortal } from 'react-dom';
-import PropTypes from 'prop-types';
 import { Overlay, StyledModal } from './Modal.styled';
 
 const ModalRoot = document.querySelector('#modal-root');
 
 class Modal extends Component {
-  static propTypes = {
-    url: PropTypes.string.isRequired,
-    onClose: PropTypes.func.isRequired,
-  };
-
   componentDidMount() {
     window.addEventListener('keydown', this.handleEscKeydown);
   }
@@ -19,26 +13,22 @@ class Modal extends Component {
     window.removeEventListener('keydown', this.handleEscKeydown);
   }
 
-  handleOverlayClick = ({ target, currentTarget }) => {
-    if (target === currentTarget) {
-      this.props.onClose();
+  handleEscKeydown = e => {
+    if (e.code === 'Escape') {
+      this.props.activeModal();
     }
   };
 
-  handleEscKeydown = ({ code }) => {
-    if (code === 'Escape') {
-      this.props.onClose();
+  handleOverlayClick = e => {
+    if (e.currentTarget === e.target) {
+      this.props.activeModal();
     }
   };
 
   render() {
-    const { url } = this.props;
-
     return createPortal(
       <Overlay onClick={this.handleOverlayClick}>
-        <StyledModal>
-          <img src={url} alt="" />
-        </StyledModal>
+        <StyledModal>{this.props.children}</StyledModal>
       </Overlay>,
       ModalRoot
     );

@@ -1,21 +1,12 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import { toast } from 'react-toastify';
 import { Header, Form, Button, ButtonLabel, Input } from './Searchbar.styled';
 
 class Searchbar extends Component {
-  state = {
-    name: '',
-    images: [],
-  };
+  state = { name: '' };
 
   handleSubmit = e => {
     e.preventDefault();
-
-    if (this.state.name.trim() === '') {
-      toast.error('Please, enter your search query.');
-      return;
-    }
     this.props.onSubmitForm(this.state.name);
     this.setState({ name: '' });
   };

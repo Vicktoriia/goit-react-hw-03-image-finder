@@ -10,35 +10,36 @@ import Modal from './Modal/Modal';
 class App extends Component {
   state = {
     name: '',
-    loading: false,
     page: 1,
-    perPage: 12,
-    images: [],
-    error: null,
-    activeModal: null,
-    totalImages: 0,
+    largeImage: '',
+    pictures: [],
+    error: '',
+    activeModal: false,
+    loading: false,
+    imgTags: '',
   };
 
   componentDidUpdate(prevProps, prevState) {
+    const { name: prevName, page: prevPage } = prevState;
     const { name, page } = this.state;
 
-    if (prevState.name === name && prevState.page === page) {
-      return;
+    if (!name) return;
+
+    if (page !== prevPage || name !== prevName) {
+      this.getImages();
     }
-    this.getImages();
   }
 
-  handleFormSubmit = name => {
-    if (this.state.name === name) {
-      toast.error('You enter the same name!!! Enter new one!!!', {
-        theme: 'colored',
-      });
-    }
-    this.setState({
-      name,
-      page: 1,
-      images: [],
-    });
+  togleModal = () => {
+    this.setState(state => ({
+      activeModal: !state.activeModal,
+    }));
+  };
+
+  bigImage = (largeImage = '') => {
+    this.setState({ largeImage });
+
+    this.togleModal();
   };
 
   async getImages() {
@@ -48,8 +49,8 @@ class App extends Component {
     try {
       const { data } = await FetchImages(name, page);
       this.setState({
-        images: [...this.state.images, ...data.hits],
-        totalImages: data.totalHits,
+        pictures: [...this.state.pictures, ...data.hits],
+        totalPictures: data.totalHits,
       });
 
       if (data.totalHits === 0) {
@@ -61,11 +62,20 @@ class App extends Component {
         );
       }
     } catch (error) {
-      this.setState({ error });
+      this.setState({ error: 'Picture not found' });
     } finally {
       this.setState({ loading: false });
     }
   }
+
+  handleFormSubmit = name => {
+    this.setState({
+      name,
+      page: 1,
+      pictures: [],
+      error: null,
+    });
+  };
 
   loadMoreImages = () => {
     this.setState(prevState => ({
@@ -73,12 +83,8 @@ class App extends Component {
     }));
   };
 
-  togleModal = url => this.setState({ activeModal: url });
-
   render() {
-    const { images, loading, activeModal, totalImages, page } = this.state;
-
-    const restOfImages = totalImages - page * 12;
+    const { pictures, loading, activeModal, largeImage, imgTags } = this.state;
 
     return (
       <div
@@ -95,17 +101,21 @@ class App extends Component {
       >
         <Searchbar onSubmitForm={this.handleFormSubmit} />
 
-        {images.length > 0 && (
-          <ImageGallery images={images} onClick={this.togleModal} />
+        {pictures.length > 0 && (
+          <ImageGallery pictures={pictures} bigImage={this.bigImage} />
         )}
 
         {loading && <Loader loading={loading} />}
 
-        {images.length > 0 && restOfImages > 0 && (
-          <Button title="Load more" onClick={this.loadMoreImages} />
+        {pictures.length > 11 && !loading && (
+          <Button onClick={this.loadMoreImages} />
         )}
 
-        {activeModal && <Modal url={activeModal} onClose={this.togleModal} />}
+        {activeModal && (
+          <Modal activeModal={this.bigImage}>
+            <img src={largeImage} alt={imgTags} />
+          </Modal>
+        )}
 
         <ToastContainer autoClose={3000} />
       </div>
