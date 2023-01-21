@@ -12,7 +12,6 @@ const App = () => {
   const [page, setPage] = useState(1);
   const [largeImage, setLargeImage] = useState('');
   const [pictures, setPictures] = useState([]);
-  const [error, setError] = useState('');
   const [activeModal, setActiveModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [totalPictures, setTotalPictures] = useState(0);
@@ -59,12 +58,15 @@ const App = () => {
     setName(name);
     setPage(1);
     setPictures([]);
-    setError(null);
+    setImgTags('');
+
   };
 
   const loadMoreImages = () => {
     setPage(prevPage => prevPage + 1);
   };
+
+  const restOfImages = totalPictures - page * 12;
 
   return (
     <div
@@ -87,7 +89,9 @@ const App = () => {
 
       {loading && <Loader loading={loading} />}
 
-      {pictures.length > 11 && !loading && <Button onClick={loadMoreImages} />}
+      {pictures.length > 0 && restOfImages > 0 && (
+        <Button onClick={loadMoreImages} />
+      )}
 
       {activeModal && (
         <Modal activeModal={bigImage}>
