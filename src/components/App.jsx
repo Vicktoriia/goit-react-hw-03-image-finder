@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import { useState, useEffect } from 'react';
 import { ToastContainer, toast } from 'react-toastify';
 import './App.css';
 import FetchImages from './Fetchimages/fetchImages';
@@ -7,120 +7,97 @@ import ImageGallery from './ImageGallery/ImageGallery';
 import Button from './Button/Button';
 import Loader from './Loader/Loader';
 import Modal from './Modal/Modal';
-class App extends Component {
-  state = {
-    name: '',
-    page: 1,
-    largeImage: '',
-    pictures: [],
-    error: '',
-    activeModal: false,
-    loading: false,
-    imgTags: '',
-  };
+const App = () => {
+  const [name, setName] = useState('');
+  const [page, setPage] = useState(1);
+  const [largeImage, setLargeImage] = useState('');
+  const [pictures, setPictures] = useState([]);
+  const [error, setError] = useState('');
+  const [activeModal, setActiveModal] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [totalPictures, setTotalPictures] = useState(0);
+  const [imgTags, setImgTags] = useState('');
 
-  componentDidUpdate(prevProps, prevState) {
-    const { name: prevName, page: prevPage } = prevState;
-    const { name, page } = this.state;
-
-    if (!name) return;
-
-    if (page !== prevPage || name !== prevName) {
-      this.getImages();
+  useEffect(() => {
+    if (!name) {
+      return;
     }
-  }
 
-  togleModal = () => {
-    this.setState(state => ({
-      activeModal: !state.activeModal,
-    }));
+    setLoading(true);
+    FetchImages(name, page)
+      .then(({ data }) => {
+        setPictures(prevPictures => [...prevPictures, ...data.hits]);
+        setTotalPictures(data.totalHits);
+        if (data.totalHits === 0) {
+          toast.error(
+            `Sorry, there are no images with name "${name}". Please try again.`,
+            {
+              theme: 'colored',
+            }
+          );
+        }
+      })
+      .catch(error => {
+        toast.error(`'Picture not found'`, {
+          theme: 'colored',
+        });
+      })
+      .finally(() => setLoading(false));
+  }, [name, page]);
+
+  const togleModal = () => {
+    setActiveModal(activeModal => !activeModal);
   };
 
-  bigImage = (largeImage = '') => {
-    this.setState({ largeImage });
+  const bigImage = (largeImage = '') => {
+    setLargeImage(largeImage);
 
-    this.togleModal();
+    togleModal();
   };
 
-  async getImages() {
-    const { name, page } = this.state;
-    this.setState({ loading: true });
-
-    try {
-      const { data } = await FetchImages(name, page);
-      this.setState({
-        pictures: [...this.state.pictures, ...data.hits],
-        totalPictures: data.totalHits,
-      });
-
-      if (data.totalHits === 0) {
-        toast.error(
-          `Sorry, there are no images with name "${this.state.name}. Please try again."`,
-          {
-            theme: 'colored',
-          }
-        );
-      }
-    } catch (error) {
-      this.setState({ error: 'Picture not found' });
-    } finally {
-      this.setState({ loading: false });
-    }
-  }
-
-  handleFormSubmit = name => {
-    this.setState({
-      name,
-      page: 1,
-      pictures: [],
-      error: null,
-    });
+  const handleFormSubmit = name => {
+    setName(name);
+    setPage(1);
+    setPictures([]);
+    setError(null);
   };
 
-  loadMoreImages = () => {
-    this.setState(prevState => ({
-      page: prevState.page + 1,
-    }));
+  const loadMoreImages = () => {
+    setPage(prevPage => prevPage + 1);
   };
 
-  render() {
-    const { pictures, loading, activeModal, largeImage, imgTags } = this.state;
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'center',
+        fontSize: 20,
+        color: '#010101',
+        gap: 20,
+        marginTop: 20,
+      }}
+    >
+      <Searchbar onSubmitForm={handleFormSubmit} />
 
-    return (
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          alignItems: 'center',
-          fontSize: 20,
-          color: '#010101',
-          gap: 20,
-          marginTop: 20,
-        }}
-      >
-        <Searchbar onSubmitForm={this.handleFormSubmit} />
+      {pictures.length > 0 && (
+        <ImageGallery pictures={pictures} bigImage={bigImage} />
+      )}
 
-        {pictures.length > 0 && (
-          <ImageGallery pictures={pictures} bigImage={this.bigImage} />
-        )}
+      {loading && <Loader loading={loading} />}
 
-        {loading && <Loader loading={loading} />}
+      {pictures.length > 11 && !loading && <Button onClick={loadMoreImages} />}
 
-        {pictures.length > 11 && !loading && (
-          <Button onClick={this.loadMoreImages} />
-        )}
+      {activeModal && (
+        <Modal activeModal={bigImage}>
+          <img src={largeImage} alt={imgTags} />
+        </Modal>
+      )}
 
-        {activeModal && (
-          <Modal activeModal={this.bigImage}>
-            <img src={largeImage} alt={imgTags} />
-          </Modal>
-        )}
-
-        <ToastContainer autoClose={3000} />
-      </div>
-    );
-  }
-}
+      <ToastContainer autoClose={3000} />
+    </div>
+  );
+};
 
 export default App;
